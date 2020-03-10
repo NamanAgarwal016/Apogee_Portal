@@ -2,7 +2,9 @@ package com.example.android.apogeeportal;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.content.ClipData;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,13 +21,19 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -33,13 +41,16 @@ import java.util.Map;
 
 public class HomeFragment extends Fragment implements AdapterView.OnItemSelectedListener {
 
-    private Spinner modifyEventSpinner, eventTypeSpinner;
-    private static final String[] allEvents = {"Pick An event to modify", "item 2", "item 3"};
-    Button btnDatePicker, btnTimePicker;
-    EditText txtDate, txtTime;
+    private Spinner modifyEventSpinner, eventTypeSpinner, locationSpinner;
+    private static final String[] allEvents = {"Pick An event to modify", "feature yet to be added", "Not working"};
+    private Button btnDatePicker, btnTimePicker;
+    private EditText txtDate, txtTime, eventNameTextView;
     private int mYear, mMonth, mDay, mHour, mMinute;
     private static final String[] eventTypes = {"Category Of Event", "coding and fintech", "quizzing and strategy", "mechatronics", "civil", "electronics and robotics", "sciences", "others", "live events"};
 
+    ArrayList<String> locations = new ArrayList<String>();
+    String latitude;
+    String longitude;
 
     FirebaseFirestore db = FirebaseFirestore.getInstance();
 
@@ -47,38 +58,20 @@ public class HomeFragment extends Fragment implements AdapterView.OnItemSelected
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         final View view = inflater.inflate(R.layout.fragment_home, null);
+        eventNameTextView = (EditText) view.findViewById(R.id.event_name_edit_text);
 
         eventTypeSpinner = (Spinner) view.findViewById(R.id.eventTypeSpinner);
         final ArrayAdapter<String> adapter1 = new ArrayAdapter<String>(getContext(),
                 android.R.layout.simple_spinner_item, eventTypes);
         adapter1.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         eventTypeSpinner.setAdapter(adapter1);
-        eventTypeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener()
-
-        {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id)
-            {
-                if (parent.getItemAtPosition(position).equals("Category Of Event"))
-                {
-                    //do nothing.
-                }
-                else
-                {
-                    // write code on what you want to do with the item selection
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> adapterView) {
-
-            }
-        });
 
         btnDatePicker = (Button) view.findViewById(R.id.btn_date);
         btnTimePicker = (Button) view.findViewById(R.id.btn_time);
         txtDate = (EditText) view.findViewById(R.id.in_date);
         txtTime = (EditText) view.findViewById(R.id.in_time);
+
+
 
         btnDatePicker.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -127,40 +120,112 @@ public class HomeFragment extends Fragment implements AdapterView.OnItemSelected
             }
         });
 
+        //-------------locations -------------------
+
+        String s1 = "Location of event";
+        locations.add(s1);
+
+        db.collection("Locations")
+                .get()
+                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        if (task.isSuccessful()) {
+                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                String name = document.getId().trim();
+                                locations.add(name);
+                            }
+                        } else {
+                            Toast.makeText(getContext(), "Error getting documents.", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+
+        locationSpinner = (Spinner) view.findViewById(R.id.locationSpinner);
+        final ArrayAdapter<String> adapter2 = new ArrayAdapter<String>(getContext(),
+                android.R.layout.simple_spinner_item, locations);
+        adapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        locationSpinner.setAdapter(adapter2);
+        locationSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                DocumentReference docRef = db.collection("Locations").document(locationSpinner.getSelectedItem().toString().trim());
+                docRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                        if (task.isSuccessful()) {
+                            DocumentSnapshot document = task.getResult();
+                            if (document.exists()) {
+                                //String edit = document.getData()
+
+                                //  Toast.makeText(getContext(), "DocumentSnapshot data: " + document.get("lat").toString(), Toast.LENGTH_SHORT).show();
+                                latitude = document.get("lat").toString().toLowerCase().trim();
+                                longitude = document.get("long").toString().toLowerCase().trim();
+                                // txtDate.setText(document.get("lat").toString());
+                                //Log.d(TAG, "DocumentSnapshot data: " + document.getData());
+                            } else {
+                                //Toast.makeText(getContext(), "No such document", Toast.LENGTH_SHORT).show();
+                                // Log.d(TAG, "No such document");
+                            }
+                        } else {
+                            Toast.makeText(getContext(), "get failed with " + task.getException(), Toast.LENGTH_SHORT).show();
+                            //Log.d(TAG, "get failed with ", task.getException());
+                        }
+                    }
+                });
+
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
+
         Button addEventButton = (Button) view.findViewById(R.id.add_event_btn);
         addEventButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                EditText eventNameTextView = (EditText) view.findViewById(R.id.event_name_edit_text);
-                String eventName = eventNameTextView.getText().toString();
 
-                //code to enter event in database
-                Map<String, Object> events = new HashMap<>();
-                events.put("Name", eventName);
-                events.put("Time", getDateFromString(txtDate.getText().toString() + txtTime.getText().toString()));
-                events.put("Type", eventTypeSpinner.getSelectedItem().toString());
-                events.put("lat", 28.36592);
-                events.put("long", 75.588224);
+                if (locationSpinner.getSelectedItem().toString().equals("Location of event") || eventTypeSpinner.getSelectedItem().toString().equals("Category Of Event") || eventNameTextView.getText().toString().trim().equals("") || txtTime.getText().toString().trim().equals(null) || txtDate.getText().toString().trim().equals(null) || txtTime.getText().toString().trim().equals("") || txtDate.getText().toString().trim().equals(null)) {
+                    Toast.makeText(getContext(), "Please fill all fields", Toast.LENGTH_SHORT).show();
+                } else {
+                    //------------
+
+                    final String eventName = eventNameTextView.getText().toString().trim();
+
+                    //code to enter event in database   document.get("name")
+                    Map<String, Object> events = new HashMap<>();
+                    events.put("Name", eventName);
+                    events.put("Time", getDateFromString(txtDate.getText().toString().trim() + txtTime.getText().toString().trim()));
+                    events.put("Type", eventTypeSpinner.getSelectedItem().toString().trim());
+                    events.put("lat", Double.parseDouble(latitude.trim()));
+                    events.put("long", Double.parseDouble(longitude.trim()));
 
 // Add a new document with a generated ID
-                db.collection("Naman")
-                        .add(events)
-                        .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
-                            @Override
-                            public void onSuccess(DocumentReference documentReference) {
-                                Toast.makeText(getContext(), "Event Added", Toast.LENGTH_SHORT).show();
-                            }
-                        })
-                        .addOnFailureListener(new OnFailureListener() {
-                            @Override
-                            public void onFailure(@NonNull Exception e) {
-                                Toast.makeText(getContext(), "Failed to add Event", Toast.LENGTH_SHORT).show();
-                            }
-                        });
+                    db.collection("Naman")
+                            .add(events)
+                            .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                                @Override
+                                public void onSuccess(DocumentReference documentReference) {
+                                    Toast.makeText(getContext(), "Event Added", Toast.LENGTH_SHORT).show();
+                                }
+                            })
+                            .addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Toast.makeText(getContext(), "Failed to add Event", Toast.LENGTH_SHORT).show();
+                                }
+                            });
                     //Make all texts clear
-                        eventNameTextView.setText("");
-                        txtDate.setText("");
-                        txtTime.setText("");
-                        //eventTypeSpinner.setSelection(adapter1.getPosition());
+                    eventNameTextView.setText(null);
+                    txtDate.setText(null);
+                    txtTime.setText(null);
+                    //eventTypeSpinner.setSelection(adapter1.getPosition());
+
+                    //---------------
+
+                }
+
             }
         });
 
