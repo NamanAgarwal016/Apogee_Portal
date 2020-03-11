@@ -208,7 +208,7 @@ public class HomeFragment extends Fragment implements AdapterView.OnItemSelected
                     events.put("long", Double.parseDouble(longitude.trim()));
 
 // Add a new document with a generated ID
-                    db.collection("Users")
+                    db.collection("Events")
                             .add(events)
                             .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
                                 @Override
