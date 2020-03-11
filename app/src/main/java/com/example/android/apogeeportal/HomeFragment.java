@@ -1,16 +1,19 @@
 package com.example.android.apogeeportal;
 
+import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
-import android.content.ClipData;
+import android.content.DialogInterface;
 import android.os.Bundle;
-import android.util.Log;
+import android.text.method.PasswordTransformationMethod;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Spinner;
@@ -41,6 +44,7 @@ import java.util.Map;
 
 public class HomeFragment extends Fragment implements AdapterView.OnItemSelectedListener {
 
+    private final String securityPasscode = "9061";
     private Spinner modifyEventSpinner, eventTypeSpinner, locationSpinner;
     private static final String[] allEvents = {"Pick An event to modify", "feature yet to be added", "Not working"};
     private Button btnDatePicker, btnTimePicker;
@@ -58,6 +62,8 @@ public class HomeFragment extends Fragment implements AdapterView.OnItemSelected
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         final View view = inflater.inflate(R.layout.fragment_home, null);
+        passcode();
+
         eventNameTextView = (EditText) view.findViewById(R.id.event_name_edit_text);
 
         eventTypeSpinner = (Spinner) view.findViewById(R.id.eventTypeSpinner);
@@ -236,10 +242,12 @@ public class HomeFragment extends Fragment implements AdapterView.OnItemSelected
         modifyEventSpinner.setAdapter(adapter);
         modifyEventSpinner.setOnItemSelectedListener(this);
 
-        Button ModifyEventButton = (Button) view.findViewById(R.id.modify_event_btn);
-        ModifyEventButton.setOnClickListener(new View.OnClickListener() {
+        Button lockPortalButton = (Button) view.findViewById(R.id.modify_event_btn);
+        lockPortalButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 // Do something in response to button click
+                    passcode();
+
             }
         });
 
@@ -269,6 +277,54 @@ public class HomeFragment extends Fragment implements AdapterView.OnItemSelected
             return null;
         }
 
+    }
+
+    public void passcode(){
+        LayoutInflater inflater = getLayoutInflater();
+        View alertLayout = inflater.inflate(R.layout.layout_custom_dialog, null);
+        //final EditText etUsername = alertLayout.findViewById(R.id.et_username);
+        final EditText passcode = alertLayout.findViewById(R.id.passcode);
+        final CheckBox cbToggle = alertLayout.findViewById(R.id.cb_show_pass);
+
+        cbToggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    // to encode password in dots
+                    passcode.setTransformationMethod(PasswordTransformationMethod.getInstance());
+                } else {
+                    // to display the password in normal text
+                    passcode.setTransformationMethod(null);
+                }
+            }
+        });
+
+        AlertDialog.Builder alert = new AlertDialog.Builder(getContext());
+        alert.setTitle("Apogee Portal 2020");
+        // this is set the view from XML inside AlertDialog
+        alert.setView(alertLayout);
+        // disallow cancel of AlertDialog on click of back button and outside touch
+        alert.setCancelable(false);
+
+        alert.setPositiveButton("Done", new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+               // String user = etUsername.getText().toString();
+                String pass = passcode.getText().toString();
+
+                if (pass.equals(securityPasscode)){
+                    Toast.makeText(getContext(),"You are an authorised member", Toast.LENGTH_SHORT).show();
+                }
+                else {
+                    Toast.makeText(getContext(),"Incorrect passcode", Toast.LENGTH_SHORT).show();
+                    passcode();
+                }
+            }
+        });
+        AlertDialog dialog = alert.create();
+        dialog.show();
     }
 
 

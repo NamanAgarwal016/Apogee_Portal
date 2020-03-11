@@ -123,6 +123,6 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:layout_margin="4dp"
-            android:text="Modify Event" />
+            android:text="Lock This Portal" />
     </LinearLayout>
 </ScrollView>
