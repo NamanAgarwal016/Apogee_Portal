@@ -44,7 +44,7 @@ import java.util.Map;
 
 public class HomeFragment extends Fragment implements AdapterView.OnItemSelectedListener {
 
-    private final String securityPasscode = "9061";
+    private String securityPasscode;
     private Spinner modifyEventSpinner, eventTypeSpinner, locationSpinner;
     private static final String[] allEvents = {"Pick An event to modify", "feature yet to be added", "Not working"};
     private Button btnDatePicker, btnTimePicker;
@@ -53,6 +53,7 @@ public class HomeFragment extends Fragment implements AdapterView.OnItemSelected
     private static final String[] eventTypes = {"Category Of Event", "coding and fintech", "quizzing and strategy", "mechatronics", "civil", "electronics and robotics", "sciences", "others", "live events"};
 
     ArrayList<String> locations = new ArrayList<String>();
+    String s1 = "Select Coin Location of Event";
     String latitude;
     String longitude;
 
@@ -62,7 +63,10 @@ public class HomeFragment extends Fragment implements AdapterView.OnItemSelected
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         final View view = inflater.inflate(R.layout.fragment_home, null);
+
+
         passcode();
+
 
         eventNameTextView = (EditText) view.findViewById(R.id.event_name_edit_text);
 
@@ -128,7 +132,7 @@ public class HomeFragment extends Fragment implements AdapterView.OnItemSelected
 
         //-------------locations -------------------
 
-        String s1 = "Location of event";
+
         locations.add(s1);
 
         db.collection("Locations")
@@ -192,7 +196,7 @@ public class HomeFragment extends Fragment implements AdapterView.OnItemSelected
         addEventButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
 
-                if (locationSpinner.getSelectedItem().toString().equals("Location of event") || eventTypeSpinner.getSelectedItem().toString().equals("Category Of Event") || eventNameTextView.getText().toString().trim().equals("") || txtTime.getText().toString().trim().equals(null) || txtDate.getText().toString().trim().equals(null) || txtTime.getText().toString().trim().equals("") || txtDate.getText().toString().trim().equals(null)) {
+                if (locationSpinner.getSelectedItem().toString().equals(s1.trim()) || eventTypeSpinner.getSelectedItem().toString().equals("Category Of Event") || eventNameTextView.getText().toString().trim().equals("") || txtTime.getText().toString().trim().equals(null) || txtDate.getText().toString().trim().equals(null) || txtTime.getText().toString().trim().equals("") || txtDate.getText().toString().trim().equals(null)) {
                     Toast.makeText(getContext(), "Please fill all fields", Toast.LENGTH_SHORT).show();
                 } else {
                     //------------
@@ -280,6 +284,23 @@ public class HomeFragment extends Fragment implements AdapterView.OnItemSelected
     }
 
     public void passcode(){
+
+        db.collection("Portal")
+                .get()
+                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        if (task.isSuccessful()) {
+                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                securityPasscode = document.getString("passcode");
+
+                            }
+                        } else {
+                            Toast.makeText(getContext(), "Error getting documents.", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+
         LayoutInflater inflater = getLayoutInflater();
         View alertLayout = inflater.inflate(R.layout.layout_custom_dialog, null);
         //final EditText etUsername = alertLayout.findViewById(R.id.et_username);
